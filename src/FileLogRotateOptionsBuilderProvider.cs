@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace logrotate
 {
-    public class FileLogRotateOptionsBuilderProvider
+    public class FileLogRotateOptionsBuilderProvider: LogRotateOptionsBuilderProvider
     {
         private readonly string file;
 
@@ -34,37 +34,6 @@ namespace logrotate
             this.file = file;
         }
 
-        public LogRotateOptionsBuilder CreateBuilder()
-        {
-            var file = this.file;
-
-            if (string.IsNullOrEmpty(file)) return new DefaultLogRotateOptionsBuilder();
-
-            if (!File.Exists(file))
-            {
-                file = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, file);
-                if (!File.Exists(file)) return null;
-            }
-
-            using (var stream = File.OpenRead(file))
-            {
-                var reader = new StreamReader(stream);
-                string line = reader.ReadLine();
-                while (IsCommentOrEmpty(line)) line = reader.ReadLine();
-
-                LogRotateOptionsBuilder builder = ParseBuilder(reader, line);
-
-                while (!reader.EndOfStream)
-                {
-                    line = reader.ReadLine();
-                    if (!IsCommentOrEmpty(line))
-                        throw new InvalidOperationException("config out of { - } : " + line);
-                }
-
-                return builder;
-            }
-        }
-
         private LogRotateOptionsBuilder ParseBuilder(StreamReader reader, string line)
         {
             var root = ReadRootLine(line);
@@ -84,9 +53,8 @@ namespace logrotate
             return builder;
         }
 
-        public LogRotateOptionsBuilder[] CreateBuilders()
+        public override LogRotateOptionsBuilder[] CreateBuilders()
         {
-            var builders = new List<LogRotateOptionsBuilder>();
             var file = this.file;
 
             if (string.IsNullOrEmpty(file)) return new LogRotateOptionsBuilder[0];
@@ -96,6 +64,8 @@ namespace logrotate
                 file = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, file);
                 if (!File.Exists(file)) return new LogRotateOptionsBuilder[0];
             }
+
+            var builders = new List<LogRotateOptionsBuilder>();
 
             using (var stream = File.OpenRead(file))
             {

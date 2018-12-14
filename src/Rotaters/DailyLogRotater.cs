@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.RegularExpressions;
 
 namespace logrotate
 {
@@ -18,6 +19,11 @@ namespace logrotate
         protected override string GetRotateSuffix(int rotateSize)
         {
             return rotateTime.AddDays(rotateSize).ToString("yyyyMMdd");
+        }
+
+        protected override bool IsLogrotatedFile(string fileName)
+        {
+            return Regex.IsMatch(fileName, @"\d{8}(.gz)?$");
         }
     }
 }

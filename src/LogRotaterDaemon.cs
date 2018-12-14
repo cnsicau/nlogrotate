@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
@@ -8,7 +9,9 @@ namespace logrotate
 {
     public class LogRotaterDaemon : IDisposable
     {
-        private readonly string optionsFile;
+        public const string GlobalOptionsFile = "logrotate";
+        public const string GlobalOptionsDirectory = "logrotate.d";
+
         private LogRotateOptions[] options;
         private LogRotater[] rotaters;
 
@@ -17,16 +20,15 @@ namespace logrotate
 
         private NamedPipeServerStream configPipe;
 
-        public LogRotaterDaemon(string optionsFile)
+        public LogRotaterDaemon()
         {
-            this.optionsFile = optionsFile;
             configPipe = PipeFactory.CreateServer();
             rotateTimer = new Timer(OnTick);
         }
 
         public void Start()
         {
-            LoadConfig();
+            Config();
             this.rotateTimer = new Timer(OnTick, null, 450, 450);
             configPipe.BeginWaitForConnection(Config, null);
         }
@@ -69,7 +71,7 @@ namespace logrotate
                 {
                     try
                     {
-                        LoadConfig();
+                        Config();
                         writer.WriteLine("load " + options.Length + " log rotater" + (options.Length > 1 ? "s" : "") + ".");
                         foreach (var opt in options)
                         {
@@ -119,18 +121,27 @@ namespace logrotate
             }
         }
 
-        public void LoadConfig()
+        public void Config()
         {
-            var builders = new FileLogRotateOptionsBuilderProvider(optionsFile).CreateBuilders();
-            var rotaters = new LogRotater[builders.Length];
-            var options = new LogRotateOptions[builders.Length];
-            for (int i = 0; i < builders.Length; i++)
+            var rotaters = new List<LogRotater>();
+            var options = new List<LogRotateOptions>();
+
+            var providers = new LogRotateOptionsBuilderProvider[] {
+                    new FileLogRotateOptionsBuilderProvider(GlobalOptionsFile),
+                    new DirectoryLogRotateOptionsBuilderProvider(GlobalOptionsDirectory)
+            };
+            foreach (var provider in providers)
             {
-                options[i] = builders[i].Build();
-                rotaters[i] = LogRotater.Create(options[i]);
+                var builders = provider.CreateBuilders();
+                for (int i = 0; i < builders.Length; i++)
+                {
+                    var opt = builders[i].Build();
+                    rotaters.Add(LogRotater.Create(opt));
+                    options.Add(opt);
+                }
             }
-            this.rotaters = rotaters;
-            this.options = options;
+            this.rotaters = rotaters.ToArray();
+            this.options = options.ToArray();
         }
 
         public void Dispose()

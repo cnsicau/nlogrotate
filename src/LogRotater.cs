@@ -37,7 +37,7 @@ namespace logrotate
                 if (!Directory.Exists(root)) return;
             }
 
-            var sourceFiles = new List<string>();
+            var sourceFiles = new HashSet<string>();
             DetectRotateSourceFiles(root, sourceFiles);
             if (sourceFiles.Count == 0) return;
 
@@ -49,16 +49,21 @@ namespace logrotate
             if (options.Compress) RotateFiles(sourceFiles, CompressFile);
         }
 
-        void DetectRotateSourceFiles(string root, List<string> sourceFilesContainer)
+        void DetectRotateSourceFiles(string root, ICollection<string> sourceFilesContainer)
         {
-            var files = Directory.GetFiles(root, options.Filter);
-            var regex = new Regex("^" + options.Filter.Replace(".", "\\.").Replace("*", ".*") + "$");
+            var files = Directory.GetFiles(root, options.Filter + "*"); // include rotated file 
+            var regex = new Regex("(?<file>^" + options.Filter.Replace(".", "\\.").Replace("*", ".*") + ")(?<rotated>.*)$");
 
             foreach (var file in files)
             {
-                if (!regex.IsMatch(Path.GetFileName(file))) continue;
-
-                sourceFilesContainer.Add(file);
+                var match = regex.Match(Path.GetFileName(file));
+                if (match.Success && (
+                        string.IsNullOrEmpty(match.Groups["rotated"].Value)
+                        || IsLogrotatedFile(match.Groups["rotated"].Value)
+                    ))
+                {
+                    sourceFilesContainer.Add(Path.Combine(root, match.Groups["file"].Value));
+                }
             }
 
             if (options.IncludeSubDirs)
@@ -145,6 +150,13 @@ namespace logrotate
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
+        protected abstract bool IsLogrotatedFile(string fileName);
+
         public static LogRotater Create(LogRotateOptions options)
         {
             if (options == null)
@@ -161,5 +173,6 @@ namespace logrotate
             }
             throw new NotSupportedException(options.RotateType.ToString());
         }
+
     }
 }

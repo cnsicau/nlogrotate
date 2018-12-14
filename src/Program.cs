@@ -13,7 +13,7 @@ namespace logrotate
 
         protected override void OnStart(string[] args)
         {
-            daemon = new LogRotaterDaemon("logrotate");
+            daemon = new LogRotaterDaemon();
             daemon.Start();
         }
 

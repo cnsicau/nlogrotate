@@ -40,6 +40,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DirectoryLogRotateOptionsBuilderProvider.cs" />
+    <Compile Include="LogRotateOptionsBuilderProvider.cs" />
     <Compile Include="Rotaters\DailyLogRotater.cs" />
     <Compile Include="FileLogRotateOptionsBuilderProvider.cs" />
     <Compile Include="Rotaters\HourlyLogRotater.cs" />
