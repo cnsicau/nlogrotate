@@ -23,7 +23,10 @@ namespace logrotate
             RunAs(() =>
             {
                 Console.WriteLine("Stop service: " + serviceName);
-                new ServiceController(serviceName).Stop();
+                var controller = new ServiceController(serviceName);
+                controller.Stop();
+                controller.WaitForStatus(ServiceControllerStatus.Stopped);
+                Console.Write("Success.");
             });
         }
 
@@ -32,7 +35,10 @@ namespace logrotate
             RunAs(() =>
             {
                 Console.WriteLine("Start service: " + serviceName);
-                new ServiceController(serviceName).Start();
+                var controller = new ServiceController(serviceName);
+                controller.Start();
+                controller.WaitForStatus(ServiceControllerStatus.Running);
+                Console.Write("Success.");
             });
         }
 
@@ -124,10 +130,27 @@ namespace logrotate
                     si.Verb = "runas";
                     si.WindowStyle = ProcessWindowStyle.Hidden;
                     si.WorkingDirectory = Environment.CurrentDirectory;
-
-                    var runAs = Process.Start(si);
-                    runAs.WaitForExit();
-                    Console.Write(File.ReadAllText(redirectFile));
+                    using (var io = File.Open(redirectFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    {
+                        var runAs = Process.Start(si);
+                        var position = io.Position;
+                        var buffer = new byte[1024];
+                        while (!runAs.HasExited)
+                        {
+                            try
+                            {
+                                var size = io.Read(buffer, 0, buffer.Length);
+                                if (size > 0)
+                                {
+                                    position += size;
+                                    Console.Write(Encoding.UTF8.GetString(buffer, 0, size));
+                                }
+                            }
+                            catch { }
+                            Thread.Sleep(50);
+                        }
+                        Console.Write(new StreamReader(io).ReadToEnd());
+                    }
                 }
                 catch (Exception)
                 {

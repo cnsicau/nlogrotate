@@ -33,7 +33,7 @@ namespace logrotate
                     DisplayUsage();
                     return;
                 }
-                
+
                 switch (args[0])
                 {
                     case "--install":
@@ -52,13 +52,16 @@ namespace logrotate
                         break;
                     case InternalIoRedirectCommand:
                         if (args.Length == 1 || !File.Exists(args[1])) Environment.Exit(1);
-                        using (var io = File.CreateText(args[1]))
+                        using (var stream = File.Open(args[1], FileMode.Open, FileAccess.Write, FileShare.Read))
                         {
-                            Console.SetError(io);
-                            Console.SetOut(io);
-                            var trimArgs = new string[args.Length - 2];
-                            Array.Copy(args, 2, trimArgs, 0, trimArgs.Length);
-                            Main(trimArgs);
+                            using (var io = new StreamWriter(stream) { AutoFlush = true })
+                            {
+                                Console.SetError(io);
+                                Console.SetOut(io);
+                                var trimArgs = new string[args.Length - 2];
+                                Array.Copy(args, 2, trimArgs, 0, trimArgs.Length);
+                                Main(trimArgs);
+                            }
                         }
                         break;
                     default:

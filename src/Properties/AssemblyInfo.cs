@@ -10,4 +10,4 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: Guid("c2fedb08-819c-419c-a3a4-18b31a09d89d")]
-[assembly: AssemblyVersion("1.0.*")]
+[assembly: AssemblyVersion("0.0.1.0")]
