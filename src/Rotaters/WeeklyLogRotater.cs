@@ -1,22 +1,42 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace logrotate
 {
     public class WeeklyLogRotater : LogRotater
     {
-        private string time;
+        private readonly int day, hour, minute, second;
         public WeeklyLogRotater(LogRotateOptions options) : base(RotateType.Weekly, options)
         {
-            this.time = options.RotateArguments ?? "0";
+            DateTime time;
+            if (string.IsNullOrEmpty(options.RotateArguments))
+            {
+                day = hour = minute = second = 0;
+            }
+            else if (
+               DateTime.TryParseExact(options.RotateArguments, "d H:m:s", null, DateTimeStyles.None, out time)
+               || DateTime.TryParseExact(options.RotateArguments, "d H:m", null, DateTimeStyles.None, out time)
+               || DateTime.TryParseExact(options.RotateArguments, "d", null, DateTimeStyles.None, out time))
+            {
+                if (time.Day >= 7) throw new InvalidOperationException("valid date is 0 - 6");
+                day = time.Day;
+                hour = time.Hour;
+                minute = time.Minute;
+                second = time.Second;
+            }
+            else
+            {
+                throw new NotSupportedException("invalid arguments: " + options.RotateArguments);
+            }
         }
 
         protected override bool IsMatch(DateTime dateTime)
         {
-            return dateTime.Hour == 0 && dateTime.Minute == 0 && dateTime.Second == 0
-                    && ((int)dateTime.DayOfWeek).ToString() == time;
+            return dateTime.Second == second
+                    && dateTime.Minute == minute
+                    && dateTime.Hour == hour
+                    && dateTime.DayOfWeek == (DayOfWeek)day;
         }
 
         protected override string GetRotateSuffix(int rotateSize)

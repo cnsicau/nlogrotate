@@ -1,19 +1,38 @@
 ﻿using System;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace logrotate
 {
     public class DailyLogRotater : LogRotater
     {
-        private string time;
+        private readonly int hour, minute, second;
         public DailyLogRotater(LogRotateOptions options) : base(RotateType.Daily, options)
         {
-            this.time = options.RotateArguments ?? "0:00:00";
+            DateTime time;
+            if (string.IsNullOrEmpty(options.RotateArguments))
+            {
+                hour = minute = second = 0;
+            }
+            else if (
+               DateTime.TryParseExact(options.RotateArguments, "H:m:s", null, DateTimeStyles.None, out time)
+               || DateTime.TryParseExact(options.RotateArguments, "H:m", null, DateTimeStyles.None, out time))
+            {
+                hour = time.Hour;
+                minute = time.Minute;
+                second = time.Second;
+            }
+            else
+            {
+                throw new NotSupportedException("invalid arguments: " + options.RotateArguments);
+            }
         }
 
         protected override bool IsMatch(DateTime dateTime)
         {
-            return dateTime.ToString("H:mm:ss") == time;
+            return dateTime.Second == second
+                    && dateTime.Minute == minute
+                    && dateTime.Hour == hour;
         }
 
         protected override string GetRotateSuffix(int rotateSize)

@@ -5,15 +5,22 @@ namespace logrotate
 {
     public class MinutelyLogRotater : LogRotater
     {
-        private string time;
+        private readonly int second;
         public MinutelyLogRotater(LogRotateOptions options) : base(RotateType.Minutely, options)
         {
-            this.time = options.RotateArguments ?? "0";
+            if (string.IsNullOrEmpty(options.RotateArguments))
+            {
+                second = 0;
+            }
+            else if (!int.TryParse(options.RotateArguments, out second) || second >= 60)
+            {
+                throw new NotSupportedException("invalid arguments: " + options.RotateArguments);
+            }
         }
 
         protected override bool IsMatch(DateTime dateTime)
         {
-            return dateTime.Second.ToString() == time;
+            return dateTime.Second == second;
         }
 
         protected override string GetRotateSuffix(int rotateSize)
