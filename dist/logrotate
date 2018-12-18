@@ -1,13 +1,35 @@
-# rotate *.logs in directory logs
-logs\*.log {
-  # every day / 1:00:00
-  daily 1:00:00
-  # keep 30 files
-  rotate 30
-  # compress rotated files. on / off
-  compress on
-  # compress files days delay
-  delaycompress 1
-  # rotate sub directories
-  includesubdirs
+# rotate demo
+day.log {
+  daily 9:00
+  rotate 10
+  delaycompress 0
+}
+
+hour.log {
+  hourly 30:00
+  rotate 24
+  delaycompress 0
+}
+
+minute.log {
+  minutely 0
+  rotate 60
+  delaycompress 0
+}
+
+month.log {
+  monthly 18 9:00:00
+  rotate 12
+  delaycompress 0
+}
+
+week.log {
+  weekly 2 9:00:00
+  rotate 2
+  delaycompress 0
+}
+
+year.log {
+  yearly 12-18 9:14:00
+  delaycompress 0
 }
