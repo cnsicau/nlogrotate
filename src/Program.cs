@@ -91,6 +91,7 @@ namespace logrotate
             {
                 using (var service = new Program(args.Length == 0 ? DefaultServicName : args[0]))
                 {
+                    Environment.CurrentDirectory = AppDomain.CurrentDomain.BaseDirectory;
                     Run(service);
                 }
             }
