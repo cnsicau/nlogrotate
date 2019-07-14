@@ -73,16 +73,7 @@ namespace logrotate
                     {
                         Config();
                         writer.WriteLine("load " + options.Length + " log rotater" + (options.Length > 1 ? "s" : "") + ".");
-                        foreach (var opt in options)
-                        {
-                            writer.WriteLine(" " + opt.Root + "\\" + opt.Filter + " { ");
-                            writer.WriteLine("   " + opt.RotateType.ToString().ToLower() + " " + opt.RotateArguments);
-                            writer.WriteLine("   rotate " + opt.Rotate);
-                            writer.WriteLine("   compress " + (opt.Compress ? "on" : "off"));
-                            writer.WriteLine("   delaycompress " + opt.DelayCompress);
-                            if (opt.IncludeSubDirs) writer.WriteLine("   includesubdirs");
-                            writer.WriteLine(" }");
-                        }
+                        WriteOptions(writer);
                     }
                     catch (Exception e)
                     {
@@ -93,16 +84,7 @@ namespace logrotate
                 {
                     writer.WriteLine(options.Length + " log rotater" + (options.Length > 1 ? "s are " : " is ")
                             + (rotateSecond == -1 ? "stopped" : "running") + ".");
-                    foreach (var opt in options)
-                    {
-                        writer.WriteLine(" " + opt.Root + "\\" + opt.Filter + " { ");
-                        writer.WriteLine("   " + opt.RotateType.ToString().ToLower() + " " + opt.RotateArguments);
-                        writer.WriteLine("   rotate " + opt.Rotate);
-                        writer.WriteLine("   compress " + (opt.Compress ? "on" : "off"));
-                        writer.WriteLine("   delaycompress " + opt.DelayCompress);
-                        if (opt.IncludeSubDirs) writer.WriteLine("   includesubdirs");
-                        writer.WriteLine(" }");
-                    }
+                    WriteOptions(writer);
                 }
                 else
                 {
@@ -118,6 +100,33 @@ namespace logrotate
             {
                 configPipe.Disconnect();
                 configPipe.BeginWaitForConnection(Config, ar.AsyncState);
+            }
+        }
+        void WriteOptions(TextWriter writer)
+        {
+            foreach (var opt in options)
+            {
+                writer.WriteLine(" " + opt.Root + "\\" + opt.Filter + " { ");
+                writer.WriteLine("   " + opt.RotateType.ToString().ToLower() + " " + opt.RotateArguments);
+                writer.WriteLine("   rotate " + opt.Rotate);
+                writer.WriteLine("   compress " + (opt.Compress ? "on" : "off"));
+                writer.WriteLine("   delaycompress " + opt.DelayCompress);
+                if (opt.PreScripts.Length > 0)
+                {
+                    writer.WriteLine();
+                    writer.WriteLine("   prerotate");
+                    foreach (var script in opt.PreScripts) writer.WriteLine("      " + script);
+                    writer.WriteLine("   endscript");
+                }
+                if (opt.PostScripts.Length > 0)
+                {
+                    writer.WriteLine();
+                    writer.WriteLine("   postrotate");
+                    foreach (var script in opt.PostScripts) writer.WriteLine("      " + script);
+                    writer.WriteLine("   endscript");
+                }
+                if (opt.IncludeSubDirs) writer.WriteLine("   includesubdirs");
+                writer.WriteLine(" }");
             }
         }
 

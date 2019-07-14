@@ -24,29 +24,47 @@ namespace logrotate
 
         protected abstract bool IsMatch(DateTime dateTime);
 
+        static void ExecuteScript(string script)
+        {
+            var si = new ProcessStartInfo();
+            si.CreateNoWindow = true;
+            si.UseShellExecute = false;
+            si.Arguments = "/c " + script;
+            si.FileName = "cmd.exe";
+            Process.Start(si).WaitForExit();
+            Console.WriteLine("execute script: " + script);
+        }
+
         public virtual void Rotate(DateTime dateTime)
         {
             if (!IsMatch(dateTime)) return;
 
             rotateTime = dateTime;
-
-            var root = options.Root;
-            if (!Directory.Exists(root))
+            try
             {
-                root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, options.Root);
-                if (!Directory.Exists(root)) return;
+                foreach (var preScript in options.PreScripts) ExecuteScript(preScript);
+
+                var root = options.Root;
+                if (!Directory.Exists(root))
+                {
+                    root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, options.Root);
+                    if (!Directory.Exists(root)) return;
+                }
+
+                var sourceFiles = new HashSet<string>();
+
+                DetectRotateSourceFiles(root, sourceFiles);
+                if (sourceFiles.Count == 0) return;
+
+                RotateFiles(sourceFiles, ArchiveFile);
+
+                RotateFiles(sourceFiles, CleanFile);
+                if (options.Compress) RotateFiles(sourceFiles, CompressFile);
             }
-
-            var sourceFiles = new HashSet<string>();
-            DetectRotateSourceFiles(root, sourceFiles);
-            if (sourceFiles.Count == 0) return;
-
-            RotateFiles(sourceFiles, ArchiveFile);
-
-            //NginxDaemon.Run("-s reopen").WaitForExit();   // reopen
-
-            RotateFiles(sourceFiles, CleanFile);
-            if (options.Compress) RotateFiles(sourceFiles, CompressFile);
+            finally
+            {
+                foreach (var postScript in options.PostScripts) ExecuteScript(postScript);
+            }
         }
 
         void DetectRotateSourceFiles(string root, ICollection<string> sourceFilesContainer)

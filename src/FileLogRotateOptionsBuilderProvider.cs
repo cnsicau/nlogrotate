@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace logrotate
 {
-    public class FileLogRotateOptionsBuilderProvider: LogRotateOptionsBuilderProvider
+    public class FileLogRotateOptionsBuilderProvider : LogRotateOptionsBuilderProvider
     {
         private readonly string file;
 
@@ -38,14 +38,26 @@ namespace logrotate
         {
             var root = ReadRootLine(line);
             var builder = new LogRotateOptionsBuilder(root);
-            bool eof = false;
+            bool eof = false, pre = false, post = false;
             while (!eof && !reader.EndOfStream)
             {
                 line = reader.ReadLine();
                 eof = Regex.IsMatch(line, @"^\s*}\s*$");
                 if (!eof && !IsCommentOrEmpty(line))
                 {
-                    EmitBuildParameter(builder, line);
+                    var instruction = line.Trim().ToLower();
+                    switch (instruction)
+                    {
+                        case "endscript": pre = post = false; break;
+                        case "prerotate": pre = true; break;
+                        case "postrotate": post = true; break;
+                        default:
+                            if (pre) builder.AddPreScripts(line);
+                            else if (post) builder.AddPostScripts(line);
+                            else EmitBuildParameter(builder, line);
+                            break;
+                    }
+
                 }
             }
 

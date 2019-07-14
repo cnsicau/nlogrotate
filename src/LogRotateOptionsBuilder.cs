@@ -8,6 +8,8 @@ namespace logrotate
     {
         private readonly Dictionary<string, string> parameters = new Dictionary<string, string>(StringComparer.CurrentCultureIgnoreCase);
         private readonly string root;
+        private readonly List<string> preScripts = new List<string>();
+        private readonly List<string> postScripts = new List<string>();
 
         public LogRotateOptionsBuilder(string root) { this.root = root; }
 
@@ -17,6 +19,10 @@ namespace logrotate
 
             return this;
         }
+
+        public virtual void AddPreScripts(string script) { preScripts.Add(script); }
+
+        public virtual void AddPostScripts(string script) { postScripts.Add(script); }
 
         public virtual LogRotateOptions Build()
         {
@@ -29,6 +35,10 @@ namespace logrotate
             BuildIncludeSubDirs(options);
 
             BuildRootFilter(options);
+
+            options.PreScripts = preScripts.ToArray();
+            options.PostScripts = postScripts.ToArray();
+
             return options;
         }
 

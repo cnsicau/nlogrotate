@@ -24,5 +24,11 @@
 
         /// <summary>include sub directories</summary>
         public bool IncludeSubDirs { get; set; }
+
+        /// <summary> shell scripts to be executed before logrotate</summary>
+        public string[] PreScripts { get; set; }
+
+        /// <summary> shell scripts to be executed after logrotate</summary>
+        public string[] PostScripts { get; set; }
     }
 }

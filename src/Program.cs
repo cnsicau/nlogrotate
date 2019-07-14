@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.ServiceProcess;
+using System.Threading;
 
 namespace logrotate
 {
@@ -49,6 +50,17 @@ namespace logrotate
                         break;
                     case "--stop":
                         new ServiceManager(args.Length == 1 ? DefaultServicName : args[1]).Stop();
+                        break;
+                    case "daemon":
+                        using (var daemon = new Program("console"))
+                        {
+                            ThreadPool.UnsafeQueueUserWorkItem(_ => daemon.OnStart(new string[0]), null);
+                            Console.WriteLine("logrotate is running, press Ctrl+C to exit.");
+                            var evt = new System.Threading.ManualResetEvent(false);
+                            Console.CancelKeyPress += (s, e) => evt.Set();
+                            evt.WaitOne();
+                            daemon.OnStop();
+                        }
                         break;
                     case InternalIoRedirectCommand:
                         if (args.Length == 1 || !File.Exists(args[1])) Environment.Exit(1);
@@ -102,7 +114,8 @@ namespace logrotate
             Console.WriteLine("Usage: logrotate command");
             Console.WriteLine("  help command");
             Console.WriteLine("     --help    -h  print current usage.");
-            Console.WriteLine("  config command");
+            Console.WriteLine("  daemon command");
+            Console.WriteLine("     daemon    execute logrotate daemon");
             Console.WriteLine("     reload    reload current lograte configuration.");
             Console.WriteLine("     status    print current lograte status.");
             Console.WriteLine("  service command");
