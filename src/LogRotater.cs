@@ -33,9 +33,7 @@ namespace logrotate
             si.Arguments = "/c " + script;
             si.FileName = "cmd.exe";
 
-            si.StandardOutputEncoding = Encoding.UTF8;
-            si.StandardErrorEncoding = Encoding.UTF8;
-
+            Console.WriteLine(" execute shell script: " + script);
             var process = Process.Start(si);
             process.WaitForExit();
             if (process.ExitCode != 0)

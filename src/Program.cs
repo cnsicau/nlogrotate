@@ -52,15 +52,25 @@ namespace logrotate
                         new ServiceManager(args.Length == 1 ? DefaultServicName : args[1]).Stop();
                         break;
                     case "daemon":
-                        using (var daemon = new Program("console"))
+                        var evt = new ManualResetEvent(false);
+                        Console.CancelKeyPress += (s, e) =>
                         {
-                            ThreadPool.UnsafeQueueUserWorkItem(_ => daemon.OnStart(new string[0]), null);
-                            Console.WriteLine("logrotate is running, press Ctrl+C to exit.");
-                            var evt = new System.Threading.ManualResetEvent(false);
-                            Console.CancelKeyPress += (s, e) => evt.Set();
-                            evt.WaitOne();
-                            daemon.OnStop();
-                        }
+                            evt.Set();
+                            e.Cancel = true;
+                        };
+                        ThreadPool.UnsafeQueueUserWorkItem(_ =>
+                        {
+                            using (var daemon = new Program("console"))
+                            {
+                                daemon.OnStart(new string[0]);
+                                Console.WriteLine("logrotate is running, press Ctrl+C to stop.");
+                                ((ManualResetEvent)_).WaitOne();
+                                daemon.OnStop();
+                                Console.WriteLine("logrotate is stopped.");
+                            }
+                        }, evt);
+                        evt.WaitOne();
+                        Thread.Sleep(100);
                         break;
                     case InternalIoRedirectCommand:
                         if (args.Length == 1 || !File.Exists(args[1])) Environment.Exit(1);

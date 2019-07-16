@@ -49,7 +49,11 @@ namespace logrotate
             foreach (var rotater in rotaters)
             {
                 try { rotater.Rotate(now); }
-                catch (Exception e) { Trace.TraceError("rotate error : " + e); }
+                catch (Exception e)
+                {
+                    Console.WriteLine(" rotate error: " + e);
+                    Trace.TraceError("rotate error : " + e);
+                }
             }
         }
 
