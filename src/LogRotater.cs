@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace logrotate
@@ -31,8 +32,23 @@ namespace logrotate
             si.UseShellExecute = false;
             si.Arguments = "/c " + script;
             si.FileName = "cmd.exe";
-            Process.Start(si).WaitForExit();
-            Console.WriteLine("execute script: " + script);
+
+            si.StandardOutputEncoding = Encoding.UTF8;
+            si.StandardErrorEncoding = Encoding.UTF8;
+
+            var process = Process.Start(si);
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+                throw new OperationCanceledException("执行脚本:" + script + "返回了错误，代码：" + process.ExitCode);
+        }
+
+        static void ExecuteScripts(IEnumerable<string> scripts)
+        {
+            if (scripts != null)
+                foreach (var script in scripts)
+                {
+                    ExecuteScript(script);
+                }
         }
 
         public virtual void Rotate(DateTime dateTime)
@@ -40,10 +56,10 @@ namespace logrotate
             if (!IsMatch(dateTime)) return;
 
             rotateTime = dateTime;
+            ExecuteScripts(options.PreScripts);
+            bool fault = false;
             try
             {
-                foreach (var preScript in options.PreScripts) ExecuteScript(preScript);
-
                 var root = options.Root;
                 if (!Directory.Exists(root))
                 {
@@ -61,9 +77,14 @@ namespace logrotate
                 RotateFiles(sourceFiles, CleanFile);
                 if (options.Compress) RotateFiles(sourceFiles, CompressFile);
             }
+            catch
+            {
+                fault = true;
+                throw;
+            }
             finally
             {
-                foreach (var postScript in options.PostScripts) ExecuteScript(postScript);
+                if (!fault) ExecuteScripts(options.PostScripts);
             }
         }
 
