@@ -20,9 +20,9 @@ namespace logrotate
             return this;
         }
 
-        public virtual void AddPreScripts(string script) { preScripts.Add(script); }
+        public virtual void AddPreScripts(string script) { preScripts.Add(script.TrimStart()); }
 
-        public virtual void AddPostScripts(string script) { postScripts.Add(script); }
+        public virtual void AddPostScripts(string script) { postScripts.Add(script.TrimStart()); }
 
         public virtual LogRotateOptions Build()
         {

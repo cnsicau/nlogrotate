@@ -51,6 +51,9 @@ namespace logrotate
                     case "--stop":
                         new ServiceManager(args.Length == 1 ? DefaultServicName : args[1]).Stop();
                         break;
+                    case "mock":
+                        new LogRotaterMock().Execute(args);
+                        break;
                     case "daemon":
                         var evt = new ManualResetEvent(false);
                         Console.CancelKeyPress += (s, e) =>
@@ -128,6 +131,10 @@ namespace logrotate
             Console.WriteLine("     daemon    execute logrotate daemon");
             Console.WriteLine("     reload    reload current lograte configuration.");
             Console.WriteLine("     status    print current lograte status.");
+            Console.WriteLine("     mock      test & execute logrotate configuration");
+            Console.WriteLine("        [time] mock time, default: current time");
+            Console.WriteLine("        [file] mock file, default : logrotate");
+
             Console.WriteLine("  service command");
             Console.WriteLine("       --install [serviceName] -i  install specified service.");
             Console.WriteLine("       --remove [serviceName]  -u  unstall specified service.");

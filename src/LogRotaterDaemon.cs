@@ -110,27 +110,7 @@ namespace logrotate
         {
             foreach (var opt in options)
             {
-                writer.WriteLine(" " + opt.Root + "\\" + opt.Filter + " { ");
-                writer.WriteLine("   " + opt.RotateType.ToString().ToLower() + " " + opt.RotateArguments);
-                writer.WriteLine("   rotate " + opt.Rotate);
-                writer.WriteLine("   compress " + (opt.Compress ? "on" : "off"));
-                writer.WriteLine("   delaycompress " + opt.DelayCompress);
-                if (opt.PreScripts.Length > 0)
-                {
-                    writer.WriteLine();
-                    writer.WriteLine("   prerotate");
-                    foreach (var script in opt.PreScripts) writer.WriteLine("      " + script);
-                    writer.WriteLine("   endscript");
-                }
-                if (opt.PostScripts.Length > 0)
-                {
-                    writer.WriteLine();
-                    writer.WriteLine("   postrotate");
-                    foreach (var script in opt.PostScripts) writer.WriteLine("      " + script);
-                    writer.WriteLine("   endscript");
-                }
-                if (opt.IncludeSubDirs) writer.WriteLine("   includesubdirs");
-                writer.WriteLine(" }");
+                opt.Store(writer);
             }
         }
 

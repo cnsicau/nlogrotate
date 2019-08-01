@@ -1,4 +1,6 @@
-﻿namespace logrotate
+﻿using System.IO;
+
+namespace logrotate
 {
     public class LogRotateOptions
     {
@@ -30,5 +32,32 @@
 
         /// <summary> shell scripts to be executed after logrotate</summary>
         public string[] PostScripts { get; set; }
+
+        #region Store
+        public void Store(TextWriter writer)
+        {
+            writer.WriteLine(" " + Root + "\\" + Filter + " { ");
+            writer.WriteLine("   " + RotateType.ToString().ToLower() + " " + RotateArguments);
+            writer.WriteLine("   rotate " + Rotate);
+            writer.WriteLine("   compress " + (Compress ? "on" : "off"));
+            writer.WriteLine("   delaycompress " + DelayCompress);
+            if (PreScripts.Length > 0)
+            {
+                writer.WriteLine();
+                writer.WriteLine("   prerotate");
+                foreach (var script in PreScripts) writer.WriteLine("      " + script);
+                writer.WriteLine("   endscript");
+            }
+            if (PostScripts.Length > 0)
+            {
+                writer.WriteLine();
+                writer.WriteLine("   postrotate");
+                foreach (var script in PostScripts) writer.WriteLine("      " + script);
+                writer.WriteLine("   endscript");
+            }
+            if (IncludeSubDirs) writer.WriteLine("   includesubdirs");
+            writer.WriteLine(" }");
+        }
+        #endregion
     }
 }
