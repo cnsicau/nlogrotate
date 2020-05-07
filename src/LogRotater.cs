@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
-using System.Text;
+using System.Management;
 using System.Text.RegularExpressions;
 
 namespace logrotate
@@ -25,7 +25,7 @@ namespace logrotate
 
         protected abstract bool IsMatch(DateTime dateTime);
 
-        static void ExecuteScript(string script)
+        static void ExecuteScript(string script, int timeout)
         {
             var si = new ProcessStartInfo();
             si.CreateNoWindow = true;
@@ -35,17 +35,39 @@ namespace logrotate
 
             Console.WriteLine(" execute shell script: " + script);
             var process = Process.Start(si);
-            process.WaitForExit();
+            if (!process.WaitForExit(timeout))
+            {
+                TerminateProcessTree(process);
+                throw new TimeoutException("执行脚本:" + script + "超时");
+            }
             if (process.ExitCode != 0)
                 throw new OperationCanceledException("执行脚本:" + script + "返回了错误，代码：" + process.ExitCode);
         }
 
-        static void ExecuteScripts(IEnumerable<string> scripts)
+        static void TerminateProcessTree(Process process)
+        {
+            try
+            {
+                var searcher = new ManagementObjectSearcher("SELECT ProcessID FROM Win32_Process WHERE ParentProcessID=" + process.Id);
+                foreach (ManagementObject mo in searcher.Get())
+                {
+                    var childProcessId = Convert.ToInt32(mo["ProcessID"]);
+                    using (var childProcess = Process.GetProcessById(childProcessId))
+                    {
+                        TerminateProcessTree(childProcess);
+                    }
+                }
+            }
+            catch { }
+            finally { process.Kill(); }
+        }
+
+        static void ExecuteScripts(IEnumerable<string> scripts, int timeout)
         {
             if (scripts != null)
                 foreach (var script in scripts)
                 {
-                    ExecuteScript(script);
+                    ExecuteScript(script, timeout);
                 }
         }
 
@@ -54,7 +76,8 @@ namespace logrotate
             if (!IsMatch(dateTime)) return;
 
             rotateTime = dateTime;
-            ExecuteScripts(options.PreScripts);
+            var timeout = (int)options.ScriptTimeout.TotalMilliseconds;
+            ExecuteScripts(options.PreScripts, timeout);
             bool fault = false;
             try
             {
@@ -82,7 +105,7 @@ namespace logrotate
             }
             finally
             {
-                if (!fault) ExecuteScripts(options.PostScripts);
+                if (!fault) ExecuteScripts(options.PostScripts, timeout);
             }
         }
 

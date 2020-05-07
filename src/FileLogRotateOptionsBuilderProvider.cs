@@ -57,7 +57,6 @@ namespace logrotate
                             else EmitBuildParameter(builder, line);
                             break;
                     }
-
                 }
             }
 

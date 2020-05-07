@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace logrotate
 {
@@ -33,14 +34,18 @@ namespace logrotate
         /// <summary> shell scripts to be executed after logrotate</summary>
         public string[] PostScripts { get; set; }
 
+        /// <summary> shell before/after script execute timeout</summary>
+        public TimeSpan ScriptTimeout { get; set; }
+
         #region Store
         public void Store(TextWriter writer)
         {
-            writer.WriteLine(" " + Root + "\\" + Filter + " { ");
+            writer.WriteLine(" " + (string.IsNullOrEmpty(Root) ? Filter : (Root + "\\" + Filter)) + " { ");
             writer.WriteLine("   " + RotateType.ToString().ToLower() + " " + RotateArguments);
             writer.WriteLine("   rotate " + Rotate);
             writer.WriteLine("   compress " + (Compress ? "on" : "off"));
             writer.WriteLine("   delaycompress " + DelayCompress);
+            writer.WriteLine("   scripttimeout {0:c}", ScriptTimeout);
             if (PreScripts.Length > 0)
             {
                 writer.WriteLine();

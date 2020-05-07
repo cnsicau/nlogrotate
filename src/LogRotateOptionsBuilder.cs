@@ -6,7 +6,7 @@ namespace logrotate
 {
     public class LogRotateOptionsBuilder
     {
-        private readonly Dictionary<string, string> parameters = new Dictionary<string, string>(StringComparer.CurrentCultureIgnoreCase);
+        private readonly Dictionary<string, string> parameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private readonly string root;
         private readonly List<string> preScripts = new List<string>();
         private readonly List<string> postScripts = new List<string>();
@@ -35,11 +35,24 @@ namespace logrotate
             BuildIncludeSubDirs(options);
 
             BuildRootFilter(options);
+            BuildScriptTimeout(options);
 
             options.PreScripts = preScripts.ToArray();
             options.PostScripts = postScripts.ToArray();
 
             return options;
+        }
+
+        private void BuildScriptTimeout(LogRotateOptions options)
+        {
+            string timeout;
+            var span = TimeSpan.FromHours(6);
+            if (parameters.TryGetValue("scripttimeout", out timeout)
+                && !TimeSpan.TryParse(timeout, out span))
+            {
+                throw new InvalidOperationException("invalid script timeout value " + timeout);
+            }
+            options.ScriptTimeout = span;
         }
 
         private void BuildRotateType(LogRotateOptions options)
