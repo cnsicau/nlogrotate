@@ -6,33 +6,37 @@ namespace logrotate
 {
     public class DailyLogRotater : LogRotater
     {
-        private readonly int hour, minute, second;
+        private readonly DateTime[] times;
         public DailyLogRotater(LogRotateOptions options) : base(RotateType.Daily, options)
         {
-            DateTime time;
             if (string.IsNullOrEmpty(options.RotateArguments))
             {
-                hour = minute = second = 0;
-            }
-            else if (
-               DateTime.TryParseExact(options.RotateArguments, "H:m:s", null, DateTimeStyles.None, out time)
-               || DateTime.TryParseExact(options.RotateArguments, "H:m", null, DateTimeStyles.None, out time))
-            {
-                hour = time.Hour;
-                minute = time.Minute;
-                second = time.Second;
+                times = new DateTime[] { DateTime.MinValue };
             }
             else
             {
-                throw new NotSupportedException("invalid arguments: " + options.RotateArguments);
+                var args = options.RotateArguments.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                times = new DateTime[args.Length];
+                for (int i = 0; i < times.Length; i++)
+                {
+                    if (!DateTime.TryParseExact(args[i].Trim(), "H:m:s", null, DateTimeStyles.None, out times[i])
+                        && !DateTime.TryParseExact(args[i].Trim(), "H:m", null, DateTimeStyles.None, out times[i]))
+                    {
+                        throw new NotSupportedException("invalid arguments: " + options.RotateArguments);
+                    }
+                }
             }
         }
 
         protected override bool IsMatch(DateTime dateTime)
         {
-            return dateTime.Second == second
-                    && dateTime.Minute == minute
-                    && dateTime.Hour == hour;
+            for (int i = 0; i < times.Length; i++)
+            {
+                if (times[i].Hour == dateTime.Hour
+                    && times[i].Minute == dateTime.Minute
+                    && times[i].Second == dateTime.Second) return true;
+            }
+            return false;
         }
 
         protected override string GetRotateSuffix(int rotateSize)

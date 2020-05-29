@@ -6,38 +6,41 @@ namespace logrotate
 {
     public class MonthlyLogRotater : LogRotater
     {
-        private readonly int day, hour, minute, second;
+        private readonly DateTime[] times;
 
         public MonthlyLogRotater(LogRotateOptions options) : base(RotateType.Monthly, options)
         {
-            DateTime time;
             if (string.IsNullOrEmpty(options.RotateArguments))
             {
-                day = 1;
-                hour = minute = second = 0;
-            }
-            else if (
-               DateTime.TryParseExact(options.RotateArguments, "d H:m:s", null, DateTimeStyles.None, out time)
-               || DateTime.TryParseExact(options.RotateArguments, "d H:m", null, DateTimeStyles.None, out time)
-               || DateTime.TryParseExact(options.RotateArguments, "d", null, DateTimeStyles.None, out time))
-            {
-                day = time.Day;
-                hour = time.Hour;
-                minute = time.Minute;
-                second = time.Second;
+                times = new DateTime[] { DateTime.MinValue };
             }
             else
             {
-                throw new NotSupportedException("invalid arguments: " + options.RotateArguments);
+                var args = options.RotateArguments.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                times = new DateTime[args.Length];
+                for (int i = 0; i < times.Length; i++)
+                {
+                    if (!DateTime.TryParseExact(args[i].Trim(), "d H:m:s", null, DateTimeStyles.None, out times[i])
+                        && !DateTime.TryParseExact(args[i].Trim(), "d H:m", null, DateTimeStyles.None, out times[i]))
+                    {
+                        int d;
+                        if(!int.TryParse(args[i].Trim(), out d) || d > 31) throw new NotSupportedException("invalid arguments: " + options.RotateArguments);
+                        times[i] = new DateTime(0, 0, d);
+                    }
+                }
             }
         }
 
         protected override bool IsMatch(DateTime dateTime)
         {
-            return dateTime.Second == second
-                    && dateTime.Minute == minute
-                    && dateTime.Hour == hour
-                    && dateTime.Day == day;
+            for (int i = 0; i < times.Length; i++)
+            {
+                if (times[i].Day == dateTime.Day
+                    && times[i].Hour == dateTime.Hour
+                    && times[i].Minute == dateTime.Minute
+                    && times[i].Second == dateTime.Second) return true;
+            }
+            return false;
         }
 
         protected override string GetRotateSuffix(int rotateSize)

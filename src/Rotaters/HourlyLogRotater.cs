@@ -7,31 +7,35 @@ namespace logrotate
 
     public class HourlyLogRotater : LogRotater
     {
-        private readonly int minute, second;
+        private readonly DateTime[] times;
         public HourlyLogRotater(LogRotateOptions options) : base(RotateType.Hourly, options)
         {
-            DateTime time;
             if (string.IsNullOrEmpty(options.RotateArguments))
             {
-                minute = second = 0;
-            }
-            else if (
-               DateTime.TryParseExact(options.RotateArguments, "m:s", null, DateTimeStyles.None, out time)
-               || DateTime.TryParseExact(options.RotateArguments, "m", null, DateTimeStyles.None, out time))
-            {
-                minute = time.Minute;
-                second = time.Second;
+                times = new DateTime[] { DateTime.MinValue };
             }
             else
             {
-                throw new NotSupportedException("invalid arguments: " + options.RotateArguments);
+                var args = options.RotateArguments.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                times = new DateTime[args.Length];
+                for (int i = 0; i < times.Length; i++)
+                {
+                    if (!DateTime.TryParseExact(args[i].Trim(), "m:s", null, DateTimeStyles.None, out times[i]))
+                    {
+                        throw new NotSupportedException("invalid arguments: " + options.RotateArguments);
+                    }
+                }
             }
         }
 
         protected override bool IsMatch(DateTime dateTime)
         {
-            return dateTime.Second == second
-                    && dateTime.Minute == minute;
+            for (int i = 0; i < times.Length; i++)
+            {
+                if (times[i].Minute == dateTime.Minute
+                    && times[i].Second == dateTime.Second) return true;
+            }
+            return false;
         }
 
         protected override string GetRotateSuffix(int rotateSize)
